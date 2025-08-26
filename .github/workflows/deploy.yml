@@ -1,25 +1,40 @@
-name: CD Pipeline 
+name: CD Pipeline
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  context:
+  deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Build
-      id: build
-      uses: cloudposse/github-action-docker-build-push@main
-      with:
-        registry: registry.hub.docker.com
-        organization: "${{ github.event.repository.owner.login }}"
-        repository: "${{ github.event.repository.name }}"
-        login: "${{ secrets.DOCKERHUB_USERNAME }}"
-        password: "${{ secrets.DOCKERHUB_PASSWORD }}"
-        platforms: linux/amd64,linux/arm64
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-role
+          aws-region: us-east-2
 
-        script: |
-          echo "✅ Deployment complete!"
+      - name: Build and Push Docker image
+        uses: cloudposse/github-action-docker-build-push@main
+        with:
+          registry: registry.hub.docker.com
+          organization: "${{ github.repository_owner }}"
+          repository: "${{ github.event.repository.name }}"
+          login: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_PASSWORD }}"
+          platforms: linux/amd64,linux/arm64
+
+      - name: Deploy with Terraform
+        run: |
+          cd infra
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Done
+        run: echo "✅ Deployment complete!"
