@@ -173,3 +173,9 @@ cython_debug/
 .terraform
 *.tfstate
 *.tfstate.backup
+
+k8s/*secret.yml
+*.secrets.yml
+secrets/
+*.pem
+*.env

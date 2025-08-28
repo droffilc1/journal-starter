@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: journal-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: journal
+  template:
+    metadata:
+      labels:
+        app: journal
+    spec:
+      containers:
+        - name: journal
+          image: droffilc1/journal-starter:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: journal-config
+                  key: db_host
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: journal-config
+                  key: db_user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: journal-secret
+                  key: db_password

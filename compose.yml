@@ -9,17 +9,52 @@ services:
       - DATABASE_URL=postgresql://neondb_owner:npg_eOwXMuyZ1rp4@ep-orange-smoke-a4ol7s3g-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
     ports:
       - "8000:8000"
+    networks:
+      - monitoring
 
   db:
-      image: postgres:15-alpine
-      volumes:
-        - postgres_data:/var/lib/postgresql/data/
-      expose:
-        - 5433
-      environment:
-        - POSTGRES_USER=neondb_owner
-        - POSTGRES_PASSWORD=npg_eOwXMuyZ1rp4
-        - POSTGRES_DB=neondb
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5433
+    environment:
+      - POSTGRES_USER=neondb_owner
+      - POSTGRES_PASSWORD=npg_eOwXMuyZ1rp4
+      - POSTGRES_DB=neondb
+    networks:
+      - monitoring
+
+  prometheus-app:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    container_name: prometheus-observer
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana-observer
+    restart: unless-stopped
+    depends_on:
+      - prometheus-app
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - monitoring
 
 volumes:
-      postgres_data:
+  postgres_data:
+
+networks:
+  monitoring:
+    external: true

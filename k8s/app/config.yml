@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: journal-config
+data:
+  db_host: postgres-service
+  db_user: postgres
