@@ -1,114 +1,158 @@
-# Topic 5: Capstone
+# Journal Starter App
 
-Now that you've got some Python skills, we've got an old codebase that needs some love! You will be deploying this to the cloud in the next phase, so completing this capstone is a requirement.
+A **FastAPI application** deployed with modern cloud-native practices. This project demonstrates containerization, infrastructure as code, CI/CD automation, Kubernetes orchestration, and observability using Prometheus and Grafana.
 
-By the end of this capstone your API should be working locally.
+## 🖼 Architecture Overview
 
-## Capstone Goals
+```mermaid
 
-Create a complete Journal API solution that allows users to:
+flowchart LR
+    subgraph User
+        Client[Client / Browser]
+    end
 
-- Store journal entries
-- Retrieve journal entries
-- Delete journal entries
-- Implement proper validation and error handling
+    subgraph Cloud[Kubernetes Cluster]
+        App[FastAPI Application] --> DB[(PostgreSQL)]
+        App --> Metrics[/Metrics Endpoint/]
+        App --> Service[LoadBalancer Service]
+    end
 
-## Development Tasks
+    subgraph CI/CD[GitHub Actions Pipeline]
+        Source[GitHub Repo] --> Build[Docker Build & Push]
+        Build --> Deploy[Tf + K8s Apply]
+    end
 
-### API Implementation
+    subgraph Monitoring[Observability Stack]
+        Metrics --> Prometheus
+        Prometheus --> Grafana
+    end
 
-1. Implement missing endpoints in `journal_router.py`:
-   - GET /entries - List all journal entries
-   - GET /entries/{entry_id} - Get single entry
-   - DELETE /entries/{entry_id} - Delete specific entry
+    Service --> Client
+```
 
-### Logging Setup
+## 🚀 Setup & Deployment
 
-1. Set up basic console logging in `main.py`:
-   - Configure basic logging
-   - Set logging level to INFO
-   - Add console handler
+### 1\. Containerization
 
-### Data Model Improvements
+- The application is packaged with Docker.
 
-1. Enhance the Entry model in `models/entry.py`:
-   - Add basic field validation rules
-   - Add input data sanitization
-   - Add schema version tracking
+- Image is stored in a container registry (DockerHub/ECR).
 
-### Development Environment
+Build & push locally:
 
-1. Configure cloud provider CLI in `.devcontainer/devcontainer.json`:
-   - Choose and add one cloud CLI tool (Azure, AWS, or GCloud)
-   - Test CLI tool installation and authentication
+```bash
+docker build -t droffilc1/journal-starter:latest .
+docker push droffilc1/journal-starter:latest
+```
 
-## Technical Implementation
+### 2\. Infrastructure as Code
 
-### Data Schema
+- Terraform provisions:
 
-The journal entry data model is structured as follows:
+  - Compute resources (ECS/Kubernetes nodes)
 
-| Field       | Type      | Description                                | Validation                   |
-|-------------|-----------|--------------------------------------------|------------------------------|
-| id          | string    | Unique identifier for the entry (UUID)     | Auto-generated UUID          |
-| work        | string    | What did you work on today?                | Required, max 256 characters |
-| struggle    | string    | What's one thing you struggled with today? | Required, max 256 characters |
-| intention   | string    | What will you study/work on tomorrow?      | Required, max 256 characters |
-| created_at  | datetime  | Timestamp when the entry was created       | Auto-generated UTC timestamp |
-| updated_at  | datetime  | Timestamp when the entry was last updated  | Auto-updated UTC timestamp   |
+  - Networking (VPC, subnets, security groups)
 
-All text fields require sanitization to prevent injection attacks and ensure data quality. The schema includes version tracking to handle potential future changes to the data structure.
+  - PostgreSQL database
 
-### API Endpoints
+```bash
+cd infra
+terraform init
+terraform apply -auto-approve
+```
 
-1. **GetEntries:** Returns a JSON list of all journal entries - NEEDS IMPLEMENTATION
-2. **GetEntry:** Returns a specific journal entry by ID - NEEDS IMPLEMENTATION
-3. **DeleteEntry:** Removes a specific journal entry - NEEDS IMPLEMENTATION
-4. **CreateEntry:** Creates a new journal entry - IMPLEMENTED
-5. **UpdateEntry:** Updates an existing journal entry - IMPLEMENTED
-6. **DeleteAllEntries:** Removes all journal entries - IMPLEMENTED
+### 3\. CI/CD Pipeline
 
-## Skills to Master
+- GitHub Actions workflow (`.github/workflows/`) handles:
 
-### Programming
+  - Build & test on every commit
 
-- **Variables**: Understand how to declare and use variables.
-- **Data Types**: Familiarize yourself with different data types (e.g., strings, integers, lists, dictionaries).
-- **Comments**: Learn to write comments to document your code.
-- **Functions**: Learn to define and call functions.
-- **Object-Oriented Programming (OOP)**: Understand the basics of OOP (classes, objects, inheritance).
-- **Lists**: Learn how to create and manipulate lists.
-- **Modules**: Understand how to use and import modules.
-- **Dictionaries**: Learn to use dictionaries for key-value data storage.
-- **Loops**: Master loops (for, while) to iterate over data.
-- **Control Statements**: Understand conditional statements (if, else, elif).
-- **Exceptions**: Learn to handle exceptions and errors in your code.
+  - Build & push Docker image
 
-### Git
+  - Deploy using Terraform & Kubernetes
 
-- **Create a Git Repo Locally**: Initialize a repository and add files.
-- **Create a GitHub Repo and Clone It Locally**: Understand the process of creating a remote repository and cloning it.
-- **Create a Git Branch**: Learn to work with branches.
-- **Add Changes to a Git Branch**: Stage and commit changes.
-- **Merge Git Changes**: Merge changes from different branches.
-- **Document Code with a README**: Write clear and informative README files.
+### 4\. Kubernetes Deployment
 
-## Getting Started
+- Manifests under `/k8s` define:
 
-1. **Set up your development environment:**
-   - Install Python and required dependencies
-   - Configure your chosen cloud provider CLI tool
-   - Set up a local PostgreSQL database for development and testing
-     (You'll need to research and implement the appropriate setup for your system)
-   - Configure logging and monitoring
+  - `Deployment` (FastAPI app & PostgreSQL)
 
-2. **Implement core API features:**
-   - Add missing API endpoints for journal entries
-   - Implement proper error handling
-   - Add input validation
-   - Set up logging
+  - `Service` (LoadBalancer for app, ClusterIP for DB)
 
-3. **Test your implementation:**
-   - Test database connectivity
-   - Verify API endpoint functionality
-   - Check error handling and validation
+  - `ConfigMap` and `Secret` for configuration
+
+Deploy:
+
+```bash
+kubectl apply -f k8s/
+```
+
+### 5\. Monitoring & Observability
+
+- FastAPI exposes `/metrics` endpoint.
+
+- Prometheus scrapes metrics from the app.
+
+- Grafana visualizes key metrics:
+
+  - Request count
+
+  - Error rate
+
+  - Response latency
+
+  - CPU & memory usage
+
+* * *
+
+## 📊 Grafana Dashboards
+
+![dashboard](https://github.com/user-attachments/assets/ec9c573a-33b9-4287-96e4-de5f3ac9578a)
+![dashboard2](https://github.com/user-attachments/assets/b06f13ef-1cc6-457b-951f-24d859f40e09)
+
+System Resources
+
+> Grafana JSON exports can be found in `/grafana/provisioning/dashboards/`.
+
+* * *
+
+## 📂 Repository Structure
+
+```bash
+.
+├── app/                # FastAPI application
+├── Dockerfile          # Container definition
+├── infra/              # Terraform configs
+├── k8s/                # Kubernetes manifests
+├── .github/workflows/  # CI/CD pipeline configs
+├── grafana/            # Grafana resources
+├── prometheus/         # Prometheus resources
+└── README.md
+```
+
+## ⚡ Quick Start
+
+1. **Run locally with Docker**
+
+```bash
+docker build -t journal-starter . docker run -p 8080:8080 journal-starter
+```
+
+
+- **Provision infrastructure**
+
+```bash
+cd infra && terraform apply -auto-approve
+```
+
+- **Deploy to Kubernetes**
+
+```bash
+kubectl apply -f k8s/
+```
+
+- **Access Monitoring**
+
+  - Prometheus → `http://localhost:9090`
+
+  - Grafana → `http://localhost:3000`
